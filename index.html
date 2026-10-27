@@ -582,6 +582,15 @@
   }
   .up-cap::placeholder{color:rgba(255,255,255,.24)}
   .up-cap:focus{border-color:rgba(224,184,120,.6);background:rgba(255,255,255,.08)}
+
+  /* 拖拽时跟随指针的半透明卡片 */
+  .drag-ghost{
+    position:fixed;left:0;top:0;z-index:200;pointer-events:none;
+    border-radius:8px;overflow:hidden;opacity:.82;
+    box-shadow:0 20px 46px rgba(0,0,0,.62),0 0 0 1px rgba(224,184,120,.8);
+    will-change:transform;
+  }
+  .drag-ghost img{width:100%;height:100%;object-fit:cover;display:block}
   .up-foot{display:flex;gap:10px;margin-top:18px}
   .up-foot button{
     flex:1;padding:11px;border-radius:10px;cursor:pointer;
@@ -1477,6 +1486,34 @@
 
   /* 面板：九宫格列出当前全部照片，点格子换图、拖格子排序、下方写配文 */
   let dragIdx = -1, dragOn = false, dragX = 0, dragY = 0, dragTimer = null, suppressClick = false;
+
+  /* 拖拽中的"幽灵"卡片：半透明跟着指针走，让人知道手里拿着哪一张 */
+  let ghostEl = null;
+  function makeGhost(srcEl, x, y) {
+    killGhost();
+    const g = document.createElement("div");
+    g.className = "drag-ghost";
+    const im = srcEl.querySelector("img");
+    if (im) {
+      const c = document.createElement("img");
+      c.src = im.getAttribute("src");
+      c.style.objectPosition = im.style.objectPosition || "50% 36%";
+      g.appendChild(c);
+    }
+    g.style.width = srcEl.offsetWidth + "px";
+    g.style.height = srcEl.offsetHeight + "px";
+    g.style.transform = "translate(" + x + "px," + y + "px) translate(-50%,-50%) scale(1.06)";
+    document.body.appendChild(g);
+    ghostEl = g;
+    return g;
+  }
+  function moveGhost(x, y) {
+    if (!ghostEl) return;
+    ghostEl.style.transform = "translate(" + x + "px," + y + "px) translate(-50%,-50%) scale(1.06)";
+  }
+  function killGhost() {
+    if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+  }
   let aimIdx = -1;
   let aiming = false;
   let aimStart = null;
@@ -1539,6 +1576,7 @@
           dragTimer = setTimeout(function () {
             dragOn = true;
             el.classList.add("dragging");
+            makeGhost(el, e.clientX, e.clientY);
             try { el.setPointerCapture(e.pointerId); } catch (err) {}
             if (navigator.vibrate) navigator.vibrate(12);
             toast("拖到另一格即可交换");
@@ -1554,6 +1592,7 @@
               if (e.pointerType === "mouse" && Math.sqrt(dx * dx + dy * dy) > 10) {
                 dragOn = true;
                 el.classList.add("dragging");
+                makeGhost(el, e.clientX, e.clientY);
                 try { el.setPointerCapture(e.pointerId); } catch (err) {}
               }
             }
@@ -1565,6 +1604,7 @@
           for (let k = 0; k < all.length; k++) {
             all[k].classList.toggle("over", all[k] === t && all[k] !== el);
           }
+          moveGhost(e.clientX, e.clientY);
         });
 
         function clearDragMark() {
@@ -1580,6 +1620,7 @@
             const under = document.elementFromPoint(e.clientX, e.clientY);
             const t = under && under.closest ? under.closest(".up-cell") : null;
             clearDragMark();
+            killGhost();
             const to = t ? Number(t.dataset.idx) : NaN;
             if (!isNaN(to) && to !== idx) movePhoto(idx, to);
             suppressClick = true;                 /* 拖完别把这次点击当成换图 */
@@ -1591,6 +1632,7 @@
 
         el.addEventListener("pointercancel", function () {
           clearTimeout(dragTimer);
+          killGhost();
           if (dragIdx === idx) { clearDragMark(); dragOn = false; dragIdx = -1; }
         });
 
