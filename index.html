@@ -540,6 +540,9 @@
     position:relative;aspect-ratio:1;padding:0;overflow:hidden;cursor:pointer;
     background:#0d0d10;border:1px solid rgba(255,255,255,.12);border-radius:8px;
     transition:border-color .3s ease,box-shadow .3s ease,opacity .25s ease;
+    touch-action:manipulation;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;user-select:none;
   }
   .up-cell img{width:100%;height:100%;object-fit:cover;display:block}
   .up-cell .no{
@@ -548,7 +551,7 @@
     text-shadow:0 2px 8px rgba(0,0,0,.95);
   }
   .up-cell:hover{border-color:rgba(224,184,120,.8);box-shadow:0 8px 24px rgba(0,0,0,.5)}
-  .up-cell.dragging{opacity:.3}
+  .up-cell.dragging{opacity:.34;transform:scale(.94);z-index:3;border-color:var(--gold)}
   .up-cell.over{border-color:var(--gold);border-style:dashed}
   .up-cell.custom::after{
     content:"";position:absolute;right:7px;top:7px;width:6px;height:6px;border-radius:50%;
@@ -1473,7 +1476,7 @@
   }
 
   /* 面板：九宫格列出当前全部照片，点格子换图、拖格子排序、下方写配文 */
-  let dragFrom = -1;
+  let dragIdx = -1, dragOn = false, dragX = 0, dragY = 0, dragTimer = null, suppressClick = false;
   let aimIdx = -1;
   let aiming = false;
   let aimStart = null;
@@ -1481,9 +1484,7 @@
   function refreshAim() {
     const cells = upGrid.querySelectorAll(".up-cell");
     for (let i = 0; i < cells.length; i++) {
-      const on = (i === aimIdx);
-      cells[i].classList.toggle("aiming", on);
-      cells[i].draggable = !on;   /* 调构图时禁用原生拖拽，否则会拖出缩略图 */
+      cells[i].classList.toggle("aiming", i === aimIdx);
     }
   }
 
@@ -1495,9 +1496,9 @@
 
       const cell = document.createElement("div");
       cell.className = "up-cell" + (PHOTOS[i] !== ORIGINAL[i] ? " custom" : "");
+      cell.dataset.idx = String(i);
       cell.setAttribute("role", "button");
       cell.tabIndex = 0;
-      cell.draggable = true;
       cell.innerHTML = '<img src="' + PHOTOS[i] + '" alt="" draggable="false"' +
         ' style="object-position:' + META[i].px + "% " + META[i].py + '%">' +
         '<span class="no">' + pad(i + 1) + "</span>";
@@ -1519,39 +1520,84 @@
         el.addEventListener("keydown", function (e) {
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.click(); }
         });
-        el.addEventListener("click", function () {
+        el.addEventListener("click", function (e) {
+          if (suppressClick) { e.preventDefault(); e.stopPropagation(); return; }
           if (aimIdx === idx) return;
           pickTarget = idx;
           fileInput.click();
         });
-        el.addEventListener("dragstart", function (e) {
-          if (aimIdx === idx) { e.preventDefault(); return; }
-          dragFrom = idx;
-          el.classList.add("dragging");
-          try {
-            e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/plain", String(idx));
-          } catch (err) {}
+
+        /* 拖拽换位：鼠标直接拖；手指要先长按 0.38 秒，避免和面板滚动抢手势 */
+        el.addEventListener("pointerdown", function (e) {
+          if (aimIdx === idx) return;
+          if (e.button != null && e.button !== 0) return;
+          dragIdx = idx;
+          dragX = e.clientX; dragY = e.clientY;
+          dragOn = false;
+          clearTimeout(dragTimer);
+          if (e.pointerType === "mouse") return;
+          dragTimer = setTimeout(function () {
+            dragOn = true;
+            el.classList.add("dragging");
+            try { el.setPointerCapture(e.pointerId); } catch (err) {}
+            if (navigator.vibrate) navigator.vibrate(12);
+            toast("拖到另一格即可交换");
+          }, 380);
         });
-        el.addEventListener("dragend", function () {
+
+        el.addEventListener("pointermove", function (e) {
+          if (dragIdx !== idx || aimIdx === idx) return;
+          const dx = e.clientX - dragX, dy = e.clientY - dragY;
+          if (!dragOn) {
+            if (Math.sqrt(dx * dx + dy * dy) > 8) {
+              clearTimeout(dragTimer);
+              if (e.pointerType === "mouse" && Math.sqrt(dx * dx + dy * dy) > 10) {
+                dragOn = true;
+                el.classList.add("dragging");
+                try { el.setPointerCapture(e.pointerId); } catch (err) {}
+              }
+            }
+            if (!dragOn) return;
+          }
+          const under = document.elementFromPoint(e.clientX, e.clientY);
+          const t = under && under.closest ? under.closest(".up-cell") : null;
+          const all = upGrid.querySelectorAll(".up-cell");
+          for (let k = 0; k < all.length; k++) {
+            all[k].classList.toggle("over", all[k] === t && all[k] !== el);
+          }
+        });
+
+        function clearDragMark() {
           el.classList.remove("dragging");
           const all = upGrid.querySelectorAll(".up-cell");
           for (let k = 0; k < all.length; k++) all[k].classList.remove("over");
+        }
+
+        el.addEventListener("pointerup", function (e) {
+          clearTimeout(dragTimer);
+          if (dragIdx !== idx) return;
+          if (dragOn) {
+            const under = document.elementFromPoint(e.clientX, e.clientY);
+            const t = under && under.closest ? under.closest(".up-cell") : null;
+            clearDragMark();
+            const to = t ? Number(t.dataset.idx) : NaN;
+            if (!isNaN(to) && to !== idx) movePhoto(idx, to);
+            suppressClick = true;                 /* 拖完别把这次点击当成换图 */
+            setTimeout(function () { suppressClick = false; }, 360);
+          }
+          dragOn = false;
+          dragIdx = -1;
         });
-        el.addEventListener("dragover", function (e) {
-          if (aimIdx === idx) return;
-          if (dragFrom < 0 || dragFrom === idx) return;
-          e.preventDefault();
-          el.classList.add("over");
+
+        el.addEventListener("pointercancel", function () {
+          clearTimeout(dragTimer);
+          if (dragIdx === idx) { clearDragMark(); dragOn = false; dragIdx = -1; }
         });
-        el.addEventListener("dragleave", function () { el.classList.remove("over"); });
-        el.addEventListener("drop", function (e) {
-          e.preventDefault();
-          el.classList.remove("over");
-          if (dragFrom < 0 || dragFrom === idx) return;
-          movePhoto(dragFrom, idx);
-          dragFrom = -1;
-        });
+
+        /* 进入拖拽后必须拦住 touchmove，否则手指一移浏览器就当成翻页滚动 */
+        el.addEventListener("touchmove", function (e) {
+          if (dragOn) e.preventDefault();
+        }, { passive: false });
 
         /* 构图模式：按住拖动，像抓图一样移。记录按下时的起点，按位移量换算 */
         el.addEventListener("pointerdown", function (e) {
