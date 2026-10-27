@@ -571,7 +571,7 @@
     cursor:pointer;
   }
   .up-cell:hover .aim{opacity:1}
-  .up-cell.aiming{cursor:crosshair}
+  .up-cell.aiming{cursor:crosshair;touch-action:none}
   .up-cell.aiming .aim{opacity:1;border-color:var(--gold);color:var(--gold);background:rgba(224,184,120,.22)}
   .up-cell.aiming img{outline:1px dashed rgba(224,184,120,.6);outline-offset:-3px}
   .up-cap{
@@ -1636,9 +1636,9 @@
           if (dragIdx === idx) { clearDragMark(); dragOn = false; dragIdx = -1; }
         });
 
-        /* 进入拖拽后必须拦住 touchmove，否则手指一移浏览器就当成翻页滚动 */
+        /* 进入拖拽或构图模式后必须拦住 touchmove，否则手指一移浏览器就当成翻页滚动 */
         el.addEventListener("touchmove", function (e) {
-          if (dragOn) e.preventDefault();
+          if (dragOn || (aiming && aimIdx === idx)) e.preventDefault();
         }, { passive: false });
 
         /* 构图模式：按住拖动，像抓图一样移。记录按下时的起点，按位移量换算 */
@@ -1652,6 +1652,7 @@
         });
         el.addEventListener("pointermove", function (e) {
           if (!aiming || aimIdx !== idx || !aimStart) return;
+          e.preventDefault();
           const r = el.getBoundingClientRect();
           if (!r.width || !r.height) return;
           /* object-position 数值越大图片越往左上跑，所以要反向：鼠标往右下拖，数值减小，图跟着往右下走 */
