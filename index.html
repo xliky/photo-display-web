@@ -22,11 +22,11 @@
     font-family:var(--sans);-webkit-font-smoothing:antialiased;
     overflow-x:hidden;
   }
-  body::before{ /* 环境光 */
+  body::before{ /* 环境光，随鼠标缓慢偏移 */
     content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
     background:
-      radial-gradient(60vw 60vh at 15% 10%, rgba(224,184,120,.10), transparent 60%),
-      radial-gradient(50vw 50vh at 85% 80%, rgba(90,130,220,.10), transparent 60%);
+      radial-gradient(60vw 60vh at calc(15% + var(--mx,0px)) calc(10% + var(--my,0px)), rgba(224,184,120,.10), transparent 60%),
+      radial-gradient(50vw 50vh at calc(85% - var(--mx,0px)) calc(80% - var(--my,0px)), rgba(90,130,220,.10), transparent 60%);
   }
   img{display:block;max-width:100%;object-position:50% 36%}
   button{font:inherit;color:inherit}
@@ -352,9 +352,20 @@
 
   /* ---------- 07 尾声 ---------- */
   .finale{overflow:hidden}
-  .fin-stage{position:absolute;inset:0;perspective:1000px;overflow:hidden}
+  .fin-stage{
+    position:absolute;inset:0;perspective:1000px;overflow:hidden;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(3,1fr);
+    place-items:center;
+    padding:clamp(48px,9vh,96px) clamp(20px,5vw,72px);
+  }
+  .fin-cell{
+    display:grid;place-items:center;
+    transform:translate(var(--dx,0px),var(--dy,0px)) rotate(var(--rz,0deg));
+  }
   .fin-photo{
-    position:absolute;width:clamp(56px,7vw,96px);aspect-ratio:1;
+    position:relative;width:clamp(56px,7vw,96px);aspect-ratio:1;
     padding:3px;background:rgba(255,255,255,.07);
     box-shadow:0 12px 34px rgba(0,0,0,.6);
     animation:floaty 9s ease-in-out infinite;
@@ -388,8 +399,7 @@
     opacity:0;pointer-events:none;transition:opacity .4s ease;
   }
   .lb.on{opacity:1;pointer-events:auto}
-  .lb figure{margin:0;transform:scale(.94);transition:transform .45s cubic-bezier(.2,.8,.25,1)}
-  .lb.on figure{transform:scale(1)}
+  .lb figure{margin:0}
   .lb img{max-width:86vw;max-height:74vh;box-shadow:0 30px 100px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.16)}
   .lb figcaption{margin-top:16px;text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim)}
   .lb-x{
@@ -398,6 +408,121 @@
     font-size:14px;color:var(--ink);transition:.3s ease;
   }
   .lb-x:hover{background:rgba(255,255,255,.1);border-color:var(--gold);color:var(--gold)}
+
+  /* ---------- 暗房显影 ---------- */
+  @keyframes develop{
+    0%  {filter:blur(18px) brightness(2.6) contrast(.28) saturate(.08);opacity:.08}
+    30% {filter:blur(11px) brightness(2.0) contrast(.45) saturate(.24);opacity:.36}
+    55% {filter:blur(6px)  brightness(1.6) contrast(.66) saturate(.55);opacity:.66}
+    78% {filter:blur(2.4px) brightness(1.22) contrast(.88) saturate(.83);opacity:.88}
+    100%{filter:blur(0) brightness(1) contrast(1) saturate(1);opacity:1}
+  }
+  img.developing{
+    animation:develop 1.45s cubic-bezier(.12,.72,.25,1);
+    will-change:filter,opacity;
+  }
+
+  /* ---------- 上传 ---------- */
+  .up-btn{
+    position:fixed;right:clamp(16px,3.2vw,34px);bottom:30px;z-index:60;
+    width:48px;height:48px;border-radius:50%;cursor:pointer;
+    display:grid;place-items:center;
+    background:rgba(20,20,24,.55);border:1px solid rgba(255,255,255,.16);
+    color:var(--ink);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    transition:transform .35s cubic-bezier(.2,.8,.25,1),border-color .35s ease,
+               color .35s ease,background .35s ease,box-shadow .35s ease;
+  }
+  .up-btn svg{width:19px;height:19px;stroke:currentColor;fill:none;
+    stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+  .up-btn:hover{
+    transform:translateY(-3px);border-color:rgba(224,184,120,.75);color:var(--gold);
+    background:rgba(224,184,120,.10);box-shadow:0 10px 30px rgba(224,184,120,.18);
+  }
+  .up-btn:active{transform:translateY(-1px) scale(.95)}
+  .up-btn.busy{pointer-events:none;opacity:.5}
+
+  .toast{
+    position:fixed;left:50%;bottom:96px;z-index:86;
+    transform:translate(-50%,16px);
+    padding:11px 20px;border-radius:999px;white-space:nowrap;
+    background:rgba(16,16,20,.9);border:1px solid rgba(255,255,255,.14);
+    font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:#eae6de;
+    opacity:0;pointer-events:none;
+    transition:opacity .45s ease,transform .45s cubic-bezier(.2,.8,.25,1);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  .drop-mask{
+    position:fixed;inset:14px;z-index:88;display:grid;place-items:center;border-radius:16px;
+    background:rgba(6,6,9,.72);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px dashed rgba(224,184,120,.55);
+    font-family:var(--mono);font-size:12px;letter-spacing:.34em;color:var(--gold);
+    opacity:0;pointer-events:none;transition:opacity .28s ease;
+  }
+  .drop-mask.on{opacity:1}
+
+  /* ---------- 照片管理面板 ---------- */
+  .up-panel{
+    position:fixed;inset:0;z-index:87;display:grid;place-items:center;padding:20px;
+    background:rgba(5,5,8,.86);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    opacity:0;pointer-events:none;transition:opacity .35s ease;
+  }
+  .up-panel.on{opacity:1;pointer-events:auto}
+  .up-box{
+    width:min(540px,92vw);max-height:86vh;overflow:auto;
+    background:rgba(16,16,20,.97);
+    border:1px solid rgba(255,255,255,.14);border-radius:16px;
+    padding:22px;
+    box-shadow:0 30px 90px rgba(0,0,0,.7);
+    transform:translateY(16px) scale(.97);
+    transition:transform .42s cubic-bezier(.2,.8,.25,1);
+  }
+  .up-panel.on .up-box{transform:none}
+  .up-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .up-head b{font-family:var(--serif);font-weight:400;font-size:19px;letter-spacing:.02em}
+  .up-close{
+    width:32px;height:32px;border-radius:50%;cursor:pointer;
+    background:none;border:1px solid rgba(255,255,255,.18);color:var(--ink);
+    font-size:12px;transition:.3s ease;
+  }
+  .up-close:hover{border-color:var(--gold);color:var(--gold);background:rgba(224,184,120,.1)}
+  .up-tip{
+    margin:0 0 16px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;color:var(--dim);
+  }
+  .up-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .up-cell{
+    position:relative;aspect-ratio:1;padding:0;overflow:hidden;cursor:pointer;
+    background:#0d0d10;border:1px solid rgba(255,255,255,.12);border-radius:8px;
+    transition:border-color .3s ease,transform .3s cubic-bezier(.2,.8,.25,1);
+  }
+  .up-cell img{width:100%;height:100%;object-fit:cover;display:block}
+  .up-cell span{
+    position:absolute;left:7px;bottom:5px;z-index:2;
+    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:#fff;
+    text-shadow:0 2px 8px rgba(0,0,0,.95);
+  }
+  .up-cell:hover{border-color:rgba(224,184,120,.8);transform:translateY(-2px)}
+  .up-cell.custom::after{
+    content:"";position:absolute;right:7px;top:7px;width:6px;height:6px;border-radius:50%;
+    background:var(--gold);box-shadow:0 0 9px rgba(224,184,120,.9);z-index:2;
+  }
+  .up-cell.custom::before{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    box-shadow:inset 0 0 0 1px rgba(224,184,120,.55);border-radius:8px;
+  }
+  .up-foot{display:flex;gap:10px;margin-top:18px}
+  .up-foot button{
+    flex:1;padding:11px;border-radius:10px;cursor:pointer;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--ink);
+    transition:.3s ease;
+  }
+  .up-foot button:hover{border-color:var(--gold);color:var(--gold);background:rgba(224,184,120,.08)}
 
   @media (prefers-reduced-motion:reduce){
     *{animation-duration:.01ms !important;animation-iteration-count:1 !important}
@@ -514,6 +639,28 @@
   </section>
 </main>
 
+<button class="up-btn" id="upBtn" type="button" aria-label="上传照片替换" title="上传照片替换">
+  <svg viewBox="0 0 24 24"><path d="M12 16V4M12 4l-4 4M12 4l4 4M5 16v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+</button>
+<input type="file" id="fileInput" accept="image/*" multiple hidden>
+<div class="toast" id="toast"></div>
+<div class="drop-mask" id="dropMask">松开即可替换照片</div>
+
+<div class="up-panel" id="upPanel" aria-hidden="true">
+  <div class="up-box">
+    <div class="up-head">
+      <b>照片管理</b>
+      <button class="up-close" id="upClose" type="button" aria-label="关闭">✕</button>
+    </div>
+    <p class="up-tip">点任意一格单独替换 · 金色圆点表示已换过</p>
+    <div class="up-grid" id="upGrid"></div>
+    <div class="up-foot">
+      <button id="upBatch" type="button">批量替换</button>
+      <button id="upReset" type="button">还原全部</button>
+    </div>
+  </div>
+</div>
+
 <div class="lb" id="lb" aria-hidden="true">
   <figure>
     <img id="lbImg" alt="" />
@@ -540,7 +687,30 @@
   ];
   const N = PHOTOS.length;
   const src = (i) => PHOTOS[((i % N) + N) % N];
+  const PI = (i) => ((i % N) + N) % N;
+  /* 统一生成带索引标记的 img，方便上传后整站刷新 */
+  const imgHTML = (i) =>
+    '<img src="' + PHOTOS[PI(i)] + '" data-pi="' + PI(i) + '" alt="" draggable="false">';
   const pad = (n) => String(n).padStart(2, "0");
+
+  /* 留一份原始清单，「还原全部」时用 */
+  const ORIGINAL = PHOTOS.slice();
+
+  /* 之前上传过的话，先把照片清单写回，再开始构建各场景 */
+  const LSKEY = "photolab.photos.v1";
+  try {
+    const savedRaw = localStorage.getItem(LSKEY);
+    if (savedRaw) {
+      const savedArr = JSON.parse(savedRaw);
+      if (Array.isArray(savedArr) && savedArr.length === N) {
+        for (let si = 0; si < N; si++) {
+          if (typeof savedArr[si] === "string" && savedArr[si].indexOf("data:image") === 0) {
+            PHOTOS[si] = savedArr[si];
+          }
+        }
+      }
+    }
+  } catch (e) {}
   const $ = (s) => document.querySelector(s);
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -610,7 +780,7 @@
     for (let i = 0; i < HERO_N; i++) {
       const fig = document.createElement("figure");
       fig.className = "hero-photo";
-      fig.innerHTML = '<img src="' + src(i) + '" alt="" draggable="false"><figcaption>' + pad(i + 1) + "</figcaption>";
+      fig.innerHTML = imgHTML(i) + "<figcaption>" + pad(i + 1) + "</figcaption>";
       heroStage.appendChild(fig);
       const a = (i / HERO_N) * Math.PI * 2 - Math.PI / 2;
       heroItems.push({
@@ -636,7 +806,7 @@
   FACES.forEach(function (cls, i) {
     const d = document.createElement("div");
     d.className = "face " + cls;
-    d.innerHTML = '<img src="' + src(i) + '" alt="" draggable="false">';
+    d.innerHTML = imgHTML(i);
     cube.appendChild(d);
   });
   const HOME = { x: -16, y: 30 };
@@ -669,7 +839,7 @@
   for (let i = 0; i < TUN_N; i++) {
     const d = document.createElement("div");
     d.className = "tun-item";
-    d.innerHTML = '<img src="' + src(i) + '" alt="" draggable="false">';
+    d.innerHTML = imgHTML(i);
     d.style.setProperty("--r", ((i % 2 ? 1 : -1) * (5 + ((i * 7) % 16))) + "deg");
     tunnelTrack.appendChild(d);
     tunItems.push({
@@ -688,7 +858,7 @@
   for (let i = 0; i < RING_N; i++) {
     const d = document.createElement("div");
     d.className = "ring-item";
-    d.innerHTML = '<img src="' + src(i) + '" alt="" draggable="false">';
+    d.innerHTML = imgHTML(i);
     ring.appendChild(d);
     ringItems.push(d);
   }
@@ -719,15 +889,48 @@
   /* ============ 04 照片墙 ============ */
   const mosaic = $("#mosaic");
   const lb = $("#lb"), lbImg = $("#lbImg"), lbCap = $("#lbCap");
-  function openLB(i) {
+  let lbFrom = null;
+  const noMotion = function () {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  };
+  /* FLIP：先量出缩略图与灯箱图的位置差，再用反向变换把图"按"回缩略图处开始放大 */
+  function lbFlipTo(fromEl) {
+    if (!fromEl || !lbImg.animate) return;
+    const to = lbImg.getBoundingClientRect();
+    const from = fromEl.getBoundingClientRect();
+    if (!to.width || !to.height || !from.width || !from.height) return;
+    const sx = from.width / to.width;
+    const sy = from.height / to.height;
+    const dx = (from.left + from.width / 2) - (to.left + to.width / 2);
+    const dy = (from.top + from.height / 2) - (to.top + to.height / 2);
+    lbImg.animate([
+      { transform: "translate(" + dx + "px," + dy + "px) scale(" + sx + "," + sy + ")", opacity: 0.55 },
+      { transform: "translate(0,0) scale(1,1)", opacity: 1 }
+    ], { duration: 640, easing: "cubic-bezier(.14,.78,.24,1)" });
+  }
+
+  function openLB(i, fromEl) {
+    lbFrom = fromEl || null;
     lbImg.src = src(i);
     lbCap.textContent = "NO." + pad(i + 1) + " / " + pad(N);
     lb.classList.add("on");
     lb.setAttribute("aria-hidden", "false");
+    if (noMotion()) return;
+    const run = function () {
+      /* 强制同步布局，确保拿到灯箱里的最终尺寸后再做 FLIP，
+         比放在 rAF 里更稳，也不会拿到尚未更新的 rect */
+      void lbImg.offsetWidth;
+      lbFlipTo(lbFrom);
+    };
+    if (lbImg.complete && lbImg.naturalWidth) run();
+    else lbImg.onload = run;
   }
+
   function closeLB() {
+    if (!lb.classList.contains("on")) return;
     lb.classList.remove("on");
     lb.setAttribute("aria-hidden", "true");
+    lbFrom = null;
   }
   for (let i = 0; i < 9; i++) {
     const tile = document.createElement("div");
@@ -735,7 +938,7 @@
     tile.style.setProperty("--off", ((i % 3 === 1 ? -14 : i % 3 === 2 ? 14 : 0)) + "px");
     tile.style.transitionDelay = (i % 3) * 70 + Math.floor(i / 3) * 90 + "ms";
     tile.innerHTML =
-      '<div class="tile-tilt"><img src="' + src(i) + '" alt="" draggable="false">' +
+      '<div class="tile-tilt">' + imgHTML(i) +
       '<div class="glare"></div><div class="tag">NO.' + pad(i + 1) + "</div></div>";
     const tilt = tile.querySelector(".tile-tilt");
     tile.addEventListener("pointermove", function (e) {
@@ -749,7 +952,7 @@
     tile.addEventListener("pointerleave", function () {
       tilt.style.transform = "";
     });
-    tile.addEventListener("click", function () { openLB(i); });
+    tile.addEventListener("click", function () { openLB(i, tile); });
     mosaic.appendChild(tile);
     rio.observe(tile);
   }
@@ -767,7 +970,7 @@
     c.className = "card";
     c.dataset.no = String(i + 1);
     c.innerHTML =
-      '<div class="card-img"><img src="' + src(i) + '" alt="" draggable="false"></div>' +
+      '<div class="card-img">' + imgHTML(i) + "</div>" +
       '<div class="card-bar"><span>NO.' + pad(i + 1) + "</span><span>PHOTO</span></div>";
     c.addEventListener("click", function () { nextCard(c); });
     deck.appendChild(c);
@@ -815,7 +1018,7 @@
         "rotate(" + (offset + (360 / count) * i) + "deg) " +
         "translateY(calc(var(--ks) * " + (-radius) + ")) " +
         "scaleX(" + (i % 2 ? -1 : 1) + ")";
-      d.innerHTML = '<img src="' + src(inner ? i + 4 : i) + '" alt="" draggable="false">';
+      d.innerHTML = imgHTML(inner ? i + 4 : i);
       ring.appendChild(d);
     }
     kal.appendChild(ring);
@@ -824,12 +1027,13 @@
   kalRing(6, 0.20, 0.14, 30, true);      /* 内圈 6 张，反向转 */
   const kalCore = document.createElement("div");
   kalCore.className = "kal-core";
-  kalCore.innerHTML = '<img src="' + src(8) + '" alt="" draggable="false">';
+  kalCore.innerHTML = imgHTML(8);
   kal.appendChild(kalCore);
 
   /* 拖动：跟手旋转，松手带惯性，最后自动回落到原速 */
   const kalStage = $("#kalStage");
   const kalInner = kal.querySelector(".kal-ring.inner");
+  const kalGlow = document.querySelector(".kal-glow");
   const KAL_OUT_BASE = 360 / 88 / 60;   /* 度 / 帧，等于原来的 88 秒一圈 */
   const KAL_IN_BASE = -360 / 56 / 60;   /* 内圈反向，56 秒一圈 */
   let kalOut = 0, kalIn = 0;
@@ -875,19 +1079,22 @@
   function buildFinale() {
     finStage.innerHTML = "";
     finPhotos.length = 0;
+    /* 3×3 网格，一格一张：格内小幅错位保留随性感，但永远越不出自己的格子，所以不会重叠 */
     for (let i = 0; i < 9; i++) {
+      const cell = document.createElement("div");
+      cell.className = "fin-cell";
       const d = document.createElement("div");
       d.className = "fin-photo";
-      d.innerHTML = '<img src="' + src(i) + '" alt="" draggable="false">';
-      const left = 5 + Math.random() * 90;
-      const top = 6 + Math.random() * 82;
-      d.style.left = left + "%";
-      d.style.top = top + "%";
-      d.style.opacity = String(0.35 + Math.random() * 0.45);
-      d.style.filter = "blur(" + (Math.random() * 1.4).toFixed(2) + "px)";
+      d.innerHTML = imgHTML(i);
+      d.style.opacity = String(0.42 + Math.random() * 0.42);
+      d.style.filter = "blur(" + (Math.random() * 1.2).toFixed(2) + "px)";
       d.style.animationDelay = (-Math.random() * 9).toFixed(2) + "s";
       d.style.animationDuration = (7 + Math.random() * 6).toFixed(2) + "s";
-      finStage.appendChild(d);
+      cell.style.setProperty("--dx", ((Math.random() - 0.5) * 30).toFixed(1) + "px");
+      cell.style.setProperty("--dy", ((Math.random() - 0.5) * 24).toFixed(1) + "px");
+      cell.style.setProperty("--rz", ((Math.random() - 0.5) * 12).toFixed(1) + "deg");
+      cell.appendChild(d);
+      finStage.appendChild(cell);
       finPhotos.push({ el: d, depth: 0.2 + Math.random() * 0.8 });
     }
   }
@@ -915,6 +1122,205 @@
 
   $("#again").addEventListener("click", function () {
     window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  /* ============ 上传照片 ============ */
+  const upBtn = $("#upBtn");
+  const fileInput = $("#fileInput");
+  const toastEl = $("#toast");
+  const dropMask = $("#dropMask");
+  const upPanel = $("#upPanel");
+  const upGrid = $("#upGrid");
+  const UP_MAX = 1280;      /* 压缩后最长边，兼顾清晰与 localStorage 容量 */
+  const UP_QUALITY = 0.8;
+  let toastTimer = null;
+  let pickTarget = -1;      /* -1 = 批量替换，>=0 = 只替换指定那一张 */
+
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("on");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("on"); }, 2800);
+  }
+
+  /* 读文件 → canvas 缩到 1400px → 转 base64，避免原图把页面撑到几十兆 */
+  function toBase64(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !/^image\//.test(file.type)) { reject(new Error("not image")); return; }
+      const url = URL.createObjectURL(file);
+      const im = new Image();
+      im.onload = function () {
+        let w = im.naturalWidth, h = im.naturalHeight;
+        const k = Math.min(1, UP_MAX / Math.max(w, h));
+        w = Math.max(1, Math.round(w * k));
+        h = Math.max(1, Math.round(h * k));
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        cv.getContext("2d").drawImage(im, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        try { resolve(cv.toDataURL("image/jpeg", UP_QUALITY)); }
+        catch (err) { reject(err); }
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); reject(new Error("decode fail")); };
+      im.src = url;
+    });
+  }
+
+  function savePhotos() {
+    try {
+      localStorage.setItem(LSKEY, JSON.stringify(PHOTOS));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* 换一张图：同索引的所有 img 一起更新，视口附近的走显影动画 */
+  function swapNode(node, url) {
+    node.src = url;
+    const rc = node.getBoundingClientRect();
+    if (rc.bottom > -240 && rc.top < window.innerHeight + 240) {
+      node.classList.remove("developing");
+      void node.offsetWidth;   /* 强制重排，让动画可以重复触发 */
+      node.classList.add("developing");
+      node.addEventListener("animationend", function onDev() {
+        node.classList.remove("developing");
+        node.removeEventListener("animationend", onDev);
+      });
+    }
+  }
+
+  function refreshIndex(idx) {
+    const nodes = document.querySelectorAll('img[data-pi="' + idx + '"]');
+    for (let i = 0; i < nodes.length; i++) swapNode(nodes[i], PHOTOS[idx]);
+  }
+
+  function refreshAll() {
+    const nodes = document.querySelectorAll("img[data-pi]");
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      const idx = Number(el.dataset.pi);
+      if (el.getAttribute("src") === PHOTOS[idx]) continue;
+      swapNode(el, PHOTOS[idx]);
+    }
+  }
+
+  /* 面板：九宫格列出当前全部照片，点哪格换哪张，金色圆点标记已换过的 */
+  function renderPanel() {
+    upGrid.innerHTML = "";
+    for (let i = 0; i < N; i++) {
+      const cell = document.createElement("button");
+      cell.type = "button";
+      cell.className = "up-cell" + (PHOTOS[i] !== ORIGINAL[i] ? " custom" : "");
+      cell.innerHTML = '<img src="' + PHOTOS[i] + '" alt="" draggable="false"><span>' + pad(i + 1) + "</span>";
+      (function (idx) {
+        cell.addEventListener("click", function () {
+          pickTarget = idx;
+          fileInput.click();
+        });
+      })(i);
+      upGrid.appendChild(cell);
+    }
+  }
+
+  function openPanel() {
+    renderPanel();
+    upPanel.classList.add("on");
+    upPanel.setAttribute("aria-hidden", "false");
+  }
+  function closePanel() {
+    upPanel.classList.remove("on");
+    upPanel.setAttribute("aria-hidden", "true");
+  }
+
+  async function handleOne(file, idx) {
+    toast("处理中…");
+    try {
+      const url = await toBase64(file);
+      PHOTOS[idx] = url;
+      refreshIndex(idx);
+      const ok = savePhotos();
+      toast(ok ? "第 " + (idx + 1) + " 张已替换" : "已替换，但体积超标，刷新后会还原");
+      renderPanel();
+    } catch (e) {
+      toast("这张图读不出来");
+    }
+  }
+
+  async function handleFiles(files) {
+    const picked = Array.prototype.slice.call(files).filter(function (f) {
+      return f && /^image\//.test(f.type);
+    }).slice(0, N);
+    if (!picked.length) { toast("没有可用的图片"); return; }
+
+    upBtn.classList.add("busy");
+    const out = [];
+    for (let i = 0; i < picked.length; i++) {
+      toast("处理中 " + (i + 1) + " / " + picked.length);
+      try { out.push(await toBase64(picked[i])); } catch (e) {}
+    }
+    upBtn.classList.remove("busy");
+
+    if (!out.length) { toast("这些图片读不出来"); return; }
+    for (let i = 0; i < out.length; i++) PHOTOS[i] = out[i];
+    refreshAll();
+    const ok = savePhotos();
+    renderPanel();
+    toast(ok
+      ? "已批量替换前 " + out.length + " 张"
+      : "已替换前 " + out.length + " 张（体积超标，刷新后会还原）");
+  }
+
+  function resetAll() {
+    for (let i = 0; i < N; i++) PHOTOS[i] = ORIGINAL[i];
+    refreshAll();
+    try { localStorage.removeItem(LSKEY); } catch (e) {}
+    renderPanel();
+    toast("已还原为原始照片");
+  }
+
+  upBtn.addEventListener("click", openPanel);
+  $("#upClose").addEventListener("click", closePanel);
+  $("#upBatch").addEventListener("click", function () { pickTarget = -1; fileInput.click(); });
+  $("#upReset").addEventListener("click", resetAll);
+  upPanel.addEventListener("click", function (e) { if (e.target === upPanel) closePanel(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePanel(); });
+
+  fileInput.addEventListener("change", function () {
+    const files = fileInput.files;
+    if (files && files.length) {
+      if (pickTarget >= 0) handleOne(files[0], pickTarget);
+      else handleFiles(files);
+    }
+    pickTarget = -1;
+    fileInput.value = "";
+  });
+
+  /* 拖拽到页面任意位置也能换 */
+  let dragDepth = 0;
+  window.addEventListener("dragenter", function (e) {
+    if (!e.dataTransfer) return;
+    const types = e.dataTransfer.types || [];
+    let hasFile = false;
+    for (let i = 0; i < types.length; i++) { if (types[i] === "Files") hasFile = true; }
+    if (!hasFile) return;
+    dragDepth++;
+    dropMask.classList.add("on");
+  });
+  window.addEventListener("dragover", function (e) { e.preventDefault(); });
+  window.addEventListener("dragleave", function () {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (dragDepth === 0) dropMask.classList.remove("on");
+  });
+  window.addEventListener("drop", function (e) {
+    e.preventDefault();
+    dragDepth = 0;
+    dropMask.classList.remove("on");
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+      pickTarget = -1;
+      openPanel();          /* 直接打开面板，让用户看到换了哪几张 */
+      handleFiles(e.dataTransfer.files);
+    }
   });
 
   /* ============ 鼠标 / 光标 / 进度 ============ */
@@ -957,6 +1363,10 @@
 
     /* 光标 */
     cur.style.transform = "translate3d(" + curX + "px," + curY + "px,0)";
+
+    /* 环境光跟着鼠标缓慢偏移 */
+    document.documentElement.style.setProperty("--mx", (heroMX * 26).toFixed(1) + "px");
+    document.documentElement.style.setProperty("--my", (heroMY * 18).toFixed(1) + "px");
 
     /* 进度条 */
     pbar.style.width = (maxScroll > 0 ? (window.scrollY / maxScroll) * 100 : 0) + "%";
@@ -1025,12 +1435,18 @@
     }
     kal.style.transform = "rotate(" + kalOut.toFixed(2) + "deg)";
     if (kalInner) kalInner.style.transform = "rotate(" + kalIn.toFixed(2) + "deg)";
+    /* 转得越快，中心光晕越大越亮 */
+    if (kalGlow) {
+      const sp = Math.min(1, Math.abs(kalOutV) / 26);
+      kalGlow.style.transform = "translate(-50%,-50%) scale(" + (1 + sp * 0.16).toFixed(3) + ")";
+      kalGlow.style.opacity = (0.8 + sp * 0.2).toFixed(2);
+    }
 
     /* 尾声视差 */
     if (finPhotos.length) {
       const fr = finStage.getBoundingClientRect();
       if (fr.bottom > 0 && fr.top < window.innerHeight) {
-        const off = (window.innerHeight - fr.top) * 0.06;
+        const off = (window.innerHeight - fr.top) * 0.03;
         for (let i = 0; i < finPhotos.length; i++) {
           finPhotos[i].el.style.marginTop = (-off * finPhotos[i].depth).toFixed(1) + "px";
         }
